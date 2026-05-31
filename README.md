@@ -197,6 +197,44 @@ DB_PASSWORD=secret \
 - **CI** (`.github/workflows/ci.yml`) — `dev`·`main` 대상 PR/Push에서 Flyway 버전 중복 검사 → Gradle wrapper 검증 → 컴파일 → 단위 테스트(`./gradlew test`). 실패 시 테스트 리포트 업로드.
 - **배포** (`.github/workflows/deploy.yml`) — `main` Push(또는 수동 dispatch) 시 Docker 이미지 빌드·푸시 → EC2 SSH 배포(`docker-compose.prod.yml`) → `/actuator/health` 폴링으로 검증, 실패 시 직전 이미지로 자동 롤백.
 
+### 운영 서버 스펙
+
+초기 운영 환경은 축제 기간 트래픽을 고려해 단일 EC2 애플리케이션 서버와 RDS MySQL 인스턴스를 분리한 구조로 구성한다.  
+애플리케이션은 EC2 내부 Docker 컨테이너로 실행하고, Nginx가 HTTPS 요청을 받아 Spring Boot 컨테이너로 프록시한다.
+
+| 구분 | 스펙 / 구성 | 용도 |
+| --- | --- | --- |
+| 애플리케이션 서버 | AWS EC2 `t3.medium` | Spring Boot 애플리케이션, Redis 컨테이너, Nginx 실행 |
+| 데이터베이스 | AWS RDS MySQL 8 `db.t4g.medium` | 운영 데이터 저장 |
+| 캐시 / 세션 | Redis 7 Docker 컨테이너 | 어드민 세션 저장, 캐시 처리 |
+| 스토리지 | AWS S3 | 부스·공연·공지 이미지 저장 |
+| 리버스 프록시 | Nginx | HTTPS 종료, Spring Boot 프록시, 보안 경로 차단 |
+| 애플리케이션 포트 | `8080` | Spring Boot 내부 실행 포트 |
+| 외부 공개 포트 | `80`, `443` | HTTP/HTTPS 요청 처리 |
+| 배포 방식 | Docker Compose + GitHub Actions | Docker 이미지 기반 배포 및 헬스 체크 |
+
+#### 스케일링 기준
+
+초기에는 단일 EC2 인스턴스로 운영하되, 축제 기간 중 트래픽 증가나 병목이 확인되면 다음 순서로 확장한다.
+
+1. **애플리케이션 부하 증가**
+    - EC2 인스턴스 스펙 상향
+    - 필요 시 로드밸런서(ALB) 추가 후 애플리케이션 서버 다중화
+
+2. **DB 부하 증가**
+    - RDS 인스턴스 스펙 상향
+    - 느린 쿼리 확인 후 인덱스 추가
+    - 읽기 부하가 커질 경우 Read Replica 검토
+
+3. **정적 리소스 / 이미지 트래픽 증가**
+    - S3 직접 접근 구조 유지
+    - 필요 시 CloudFront 연동 검토
+
+4. **세션 / 캐시 부하 증가**
+    - Redis를 EC2 내부 컨테이너에서 ElastiCache로 분리 검토
+
+초기 운영 비용과 구현 복잡도를 낮추면서도, 트래픽 증가 시 EC2·RDS·Redis를 단계적으로 분리하거나 확장할 수 있도록 설계한다.
+
 ### 운영 엔드포인트 (Actuator)
 
 | 엔드포인트 | 용도 |
