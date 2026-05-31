@@ -1,183 +1,126 @@
 # daedongje-yonsei-server
 
-연세대학교 개교 141주년 무악대동제 2026 백엔드 서버
+연세대학교 개교 141주년 **무악대동제 2026** 공식 앱의 백엔드 서버.
 
-> 이 README는 개발 기간 동안 Linear 사용 가이드로 운영됩니다. 런칭 후 프로젝트 소개 문서로 교체 예정.
-
----
-
-## Linear 워크스페이스
-
-- **워크스페이스:** [daedongje-yonsei-server](https://linear.app/daedongje-yonsei-server)
-- **팀:** Back
-- **GitHub 연동:** 양방향 싱크 (Linear ↔ GitHub Issues)
+방문자용 앱과 운영진 어드민을 하나의 Spring Boot 서버로 제공한다. 부스·예약, 공연·라이브 무대, 공지·유실물, 홈·지도, 운영 모니터링까지 축제 기간 동안 필요한 도메인을 담는다.
 
 ---
 
-## 팀 구성
+## 프로젝트 소개
 
-| 팀 | 담당 도메인 | 팀장 | Linear 라벨 |
-| --- | --- | --- | --- |
-| A | 부스·예약 (B, B-A, R, R-A) | 고선태 | `Team-A` |
-| B | 공연·정보·지도 (P, P-A, I, I-A, 지도) | 이수정 | `Team-B` |
-| C | 공통 플랫폼 (A, H, 공통) | 백세빈 | `Team-C` |
-| Lead | 크로스 설계·리뷰·공통 모듈 | 우태호 | — |
+축제 방문자는 앱에서 부스를 둘러보고 예약하며, 공연 타임테이블과 현재 진행 중인 무대를 확인한다. 운영진은 어드민 API로 부스·공연·공지를 관리하고, 시스템 상태를 모니터링한다.
 
----
+**핵심 기능**
 
-## 이슈 생성 규칙
-
-### 제목
-```
-[Function ID] 설명 (한글 OK)
-```
-예시:
-- `[R-02] 예약 프로세스 API 구현`
-- `[B-01] 부스 일자별/장소별 필터`
-- `[P-A-02] 공연 타임테이블 등록 어드민`
-
-### 라벨 (필수 2개)
-1. **팀 라벨** — `Team-A`, `Team-B`, `Team-C` 중 하나
-2. **기능 라벨** — `B-부스`, `R-예약`, `P-공연`, `I-정보`, `A-인증`, `H-홈`, `공통` 중 하나
-
-### 타입
-Linear 기본 라벨 사용: `Feature`, `Bug`, `Improvement`
-
-### 본문 양식
-
-Linear 이슈 본문은 아래 양식을 기본으로 사용한다. 해당 없는 섹션은 삭제해도 됨.
-
-```markdown
-## 배경 / 목적
-<!-- 왜 이 작업이 필요한지 한두 줄로 -->
-
-## 작업 내용
-- [ ]
-
-## 완료 조건 (DoD)
--
-
-## 참고 자료
--
-```
-
-- **Bug** 타입은 위 양식에 `## 재현 경로`, `## 기대 동작 vs 실제 동작`, `## 환경` 섹션을 추가한다.
-- **Improvement** 타입은 `## 현재 상태`, `## 개선 방향` 섹션을 추가한다.
+- **부스 · 예약** — 일자/구역/검색 기반 부스 조회, 메뉴·이미지, 클릭 로그 기반 인기 부스, 전화번호 기반 예약 (광클 멱등 처리)
+- **공연** — 공연 정보·타임테이블, 무대별 라이브 판정(수동 핀 + 시간 자동), 세트리스트, 응원 메시지
+- **정보** — 공지사항, 유실물, 배리어프리(장애인 편의) 정보, 만족도 조사
+- **홈 · 지도** — 메인 배너, 인기 부스(캐시), 축제장 위치 정보
+- **모니터링** — 헬스 체크, 최근 에러 로그, Prometheus 메트릭, Grafana 알림 웹훅
 
 ---
 
-## 브랜치 규칙
+## 기술 스택
 
-### 자동 생성
-Linear 이슈 상세 → **Create branch** 클릭 시 자동 생성
-
-포맷: `feature/{identifier}-{title}`
-```
-feature/BACK-12-booth-crud
-feature/BACK-15-performance-timetable
-```
-
-### 주의사항
-- **브랜치명은 반드시 영어로.** 자동 생성 시 한글이 들어가면 영어로 수정 후 생성
-- 브랜치는 반드시 `dev`에서 분기
-
-### 브랜치 전략
-| 브랜치 | 용도 |
+| 구분 | 사용 기술 |
 | --- | --- |
-| `main` | 프로덕션 (리드 승인 후 머지) |
-| `dev` | 통합 브랜치 (매주 금 스테이징 배포) |
-| `feature/*` | 기능 개발 |
-| `hotfix/*` | 프로덕션 긴급 수정 |
+| 언어 / 런타임 | Java 17 (Temurin) |
+| 프레임워크 | Spring Boot 3.5.13 (Web, Validation, Data JPA, Cache, Actuator) |
+| 데이터베이스 | MySQL 8 · JPA/Hibernate · Flyway (스키마 마이그레이션) |
+| 세션 / 캐시 | Redis (Spring Session) · Caffeine (인메모리 캐시) |
+| 인증 | 세션 기반 + 역할 기반 접근 제어(RBAC) |
+| 스토리지 | AWS S3 (이미지, presigned URL) |
+| API 문서 | springdoc OpenAPI 2.8.9 (Swagger UI) |
+| 관측(Observability) | Actuator · Micrometer/Prometheus · Grafana(Alloy → Loki/Prometheus) |
+| 빌드 | Gradle (Java 17 toolchain) |
 
 ---
 
-## PR 규칙
+## 아키텍처 개요
 
-### PR 생성
-- PR description에 **Linear 이슈 링크** 또는 `closes #이슈번호` 포함
-- PR 제목에 이슈 키 포함 권장: `[BACK-12] 부스 CRUD API`
+```
+com.likelion.yonsei.daedongje
+├── domain/            # 도메인별 패키지 (controller · service · repository · entity · dto)
+│   ├── auth           # 어드민 계정 · 세션 인증 · 역할(RBAC)
+│   ├── booth          # 부스 · 메뉴 · 이미지 · 클릭 로그
+│   ├── performance    # 공연 · 타임테이블 · 라이브 무대 · 응원
+│   ├── reservation    # 부스 예약
+│   ├── info           # 공지 · 유실물 · 배리어프리 · 만족도
+│   ├── home           # 배너 · 인기 부스
+│   ├── map            # 축제장 위치
+│   └── monitoring     # 헬스 · 에러 로그 · Grafana 웹훅
+├── common/            # 공통 모듈
+│   ├── entity         # BaseEntity (createdAt/updatedAt 자동 관리)
+│   ├── response       # ApiResponse<T> · PageResponse<T> 표준 응답
+│   ├── exception      # 전역 예외 처리 · 에러 코드
+│   └── web            # CORS · 클라이언트 IP 해석 등
+└── config/            # OpenAPI, 캐시, 세션 등 설정
+```
 
-### 자동 연동
-- PR 생성 → Linear 이슈 상태 자동 `In Review`
-- PR 머지 → Linear 이슈 상태 자동 `Done` + GitHub 이슈 Close
-
-### 리뷰
-- 각 팀 팀장 리뷰 필수
-- 다른 팀 도메인 파일 수정 시 → 해당 팀 팀장 필수 리뷰어
+- **사용자 API(`/api/**`)** 와 **어드민 API(`/api/admin/**`)** 를 경로로 분리한다.
+- **인증**: 어드민 로그인 시 세션 쿠키(`DDJ_ADMIN_SESSION`)를 발급하고 세션은 Redis에 저장한다. 인터셉터(`AdminRoleInterceptor`)와 `@RequireAdminRole`로 메서드 단위 역할을 검증한다.
+- **응답**: 모든 API는 `ApiResponse<T>`(`success`/`data`/`error`) 포맷으로 통일한다.
+- **스키마**: JPA `ddl-auto=validate` — 테이블 생성/변경은 Flyway가 전담하고, JPA는 엔티티-스키마 일치성만 검증한다.
 
 ---
 
-## 상태 흐름
+## 도메인 구조
 
-```
-Backlog → Todo → In Progress → In Review → Done
-```
-
-- **Backlog**: 아직 착수 안 한 이슈
-- **Todo**: 이번 주기에 할 일
-- **In Progress**: 작업 중 (브랜치 생성 시 자동 전이)
-- **In Review**: PR 올린 상태 (PR 생성 시 자동 전이)
-- **Done**: 머지 완료 (PR 머지 시 자동 전이)
-
----
-
-## 커밋 메시지 컨벤션
-
-```
-feat: 부스 목록 조회 API 구현 (BACK-12)
-fix: 예약 대기번호 중복 채번 버그 수정 (BACK-23)
-chore: CI 워크플로우 설정 (BACK-8)
-docs: API 스펙 문서 업데이트
-refactor: BoothService 캐싱 로직 분리
-test: 예약 동시성 테스트 추가
-```
-
-커밋에 이슈 키(`BACK-XX`)를 포함하면 Linear에서 해당 이슈에 커밋 히스토리가 자동 표시됩니다.
+| 도메인 | 책임 | 핵심 엔티티 |
+| --- | --- | --- |
+| `auth` | 어드민 계정·세션 인증, 역할 기반 접근 제어 | `AdminUser`, `AdminRole`, `AdminStatus` |
+| `booth` | 부스 정보·메뉴·이미지, 클릭 로그 기반 인기 부스 집계 | `Booth`, `Menu`, `BoothImage`, `BoothClickLog` |
+| `performance` | 공연 정보·타임테이블, 라이브 무대(수동 핀+시간 자동), 응원 | `Performance`, `PerformanceSetlist`, `PerformanceImage`, `LivePerformance`, `PerformanceCheerMessage` |
+| `reservation` | 부스 예약 생성/관리, 전화번호 기반 조회, 광클 멱등 처리 | `Reservation`, `ReservationStatus` |
+| `info` | 공지사항·유실물·배리어프리 정보·만족도 조사 | `Notice`, `LostItem`, `BarrierFreeInfo` |
+| `home` | 메인 배너, 인기 부스(Caffeine 캐시) | — (조회 전용) |
+| `map` | 축제장 맵 위치(무대·부스 좌표) | `MapLocation` |
+| `monitoring` | 헬스 체크, 최근 에러 로그, Grafana 알림 웹훅 | — (운영 전용) |
 
 ---
 
-## 로컬 개발 시작하기
+## API
+
+- **Swagger UI**: 앱 기동 후 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) (프로덕션에서는 비활성화)
+- **OpenAPI 스펙**: `/v3/api-docs`
+- 사용자용 엔드포인트는 `/api/**`, 운영진용은 `/api/admin/**`. 어드민 엔드포인트는 세션 인증과 역할 검증이 필요하다.
+
+---
+
+## 시작하기 (로컬 개발)
 
 ### 사전 요구사항
 
 - **JDK 17** (Temurin 권장) — `java -version`으로 확인
-- **Docker Desktop** — [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) (학생 무료)
+- **Docker Desktop** — MySQL·Redis 컨테이너 기동용
 
-### 1. 로컬 MySQL 띄우기
+### 1. MySQL · Redis 띄우기
 
 ```bash
-# 백그라운드로 컨테이너 기동
-docker compose up -d
-
-# 컨테이너 상태 확인 (Up + healthy 면 OK)
-docker compose ps
-
-# 종료 (데이터는 보존)
-docker compose down
-
-# 데이터까지 완전 초기화
-docker compose down -v
+docker compose up -d      # MySQL(:3307) + Redis(:6379) 백그라운드 기동
+docker compose ps         # 상태 확인 (Up + healthy 면 OK)
+docker compose down       # 종료 (데이터 보존)
+docker compose down -v    # 데이터까지 완전 초기화
 ```
 
-기본 접속 정보 (`docker-compose.yml`에 정의):
+`docker-compose.yml` 기본 접속 정보:
 
-| 항목 | 값 |
-| --- | --- |
-| Host | `localhost` |
-| Port | `3306` |
-| Database | `daedongje` |
-| Username | `daedongje` |
-| Password | `daedongje` |
+| 항목 | MySQL | Redis |
+| --- | --- | --- |
+| Host | `localhost` | `localhost` |
+| Port | `3307` | `6379` |
+| Database | `daedongje` | — |
+| Username / Password | `daedongje` / `daedongje` | — |
 
 ### 2. 애플리케이션 실행
 
-`application.yaml`의 datasource는 위 docker-compose 기본값을 그대로 사용한다 — **별도 환경변수 설정 없이 바로 실행 가능**.
+`application.yaml`의 datasource·Redis 기본값이 위 docker-compose 컨테이너에 맞춰져 있어 **별도 환경변수 없이 바로 실행**된다.
 
 ```bash
 ./gradlew bootRun
 ```
 
-운영(RDS) 등 다른 DB 사용 시 환경변수로 오버라이드:
+운영(RDS) 등 다른 DB를 쓸 때만 환경변수로 오버라이드한다:
 
 ```bash
 DB_URL=jdbc:mysql://my-rds-endpoint:3306/daedongje \
@@ -186,124 +129,89 @@ DB_PASSWORD=secret \
 ./gradlew bootRun
 ```
 
-### 3. Swagger UI 확인
+### 3. 확인
 
-앱 기동 후 [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) 접속.
+[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) 에서 API 문서를 확인한다.
 
 ---
 
-## 데이터베이스 마이그레이션 (Flyway)
+## 환경 변수 & 프로파일
 
-스키마 변경은 코드와 함께 버전 관리된다. JPA `ddl-auto`는 `validate`로만 동작 — 직접 테이블을 만들거나 변경하지 않는다.
+환경 의존 값은 yaml에 직접 박지 않고 `${ENV:default}` 형태로 참조한다. 환경변수만 맞추면 하나의 jar가 모든 환경에서 동작한다. 운영 환경변수 예시는 [`.env.example`](.env.example) 참고 (DB, Redis, 세션 쿠키, AWS S3, 모니터링 웹훅, Grafana Cloud 등).
 
-### 마이그레이션 파일 위치
+| 프로파일 | 활성화 | 용도 |
+| --- | --- | --- |
+| (default) | `./gradlew bootRun` | 로컬 개발 — docker-compose MySQL/Redis 기본값 사용 |
+| `dev` | `--spring.profiles.active=dev` | 스테이징 (현재 빈 스텁) |
+| `prod` | `SPRING_PROFILES_ACTIVE=prod` | 프로덕션 — Swagger 비활성화, 세션 쿠키 `Secure; SameSite=None`, ECS JSON 구조화 로그 |
 
-```
-src/main/resources/db/migration/
-├── V1__init.sql                     ← 베이스라인 (실질적으로 비어있음 — `SELECT 1` placeholder만 포함)
-├── V2__create_booth_table.sql       ← 도메인 PR 에서 추가될 예시
-├── V3__create_reservation_table.sql
-└── ...
-```
+적용 순서: `application.yaml`(공통) → `application-{프로파일}.yaml`(오버라이드).
 
-### 새 마이그레이션 추가 절차
+---
 
-1. 다음 버전 번호 확인 (현재 디렉토리에서 가장 큰 V 번호 + 1)
-2. 파일 생성: `V{번호}__{스네이크_케이스_설명}.sql`
-   - 예: `V2__create_booth_table.sql`
-3. SQL 작성 (DDL/DML 모두 가능)
-4. 앱 기동 — Flyway 가 자동으로 미적용 파일을 순서대로 실행
-5. 적용 확인: `flyway_schema_history` 테이블 조회
+## 데이터베이스 (Flyway)
+
+스키마 변경은 코드와 함께 버전 관리된다. 마이그레이션 파일은 `src/main/resources/db/migration/`에 위치하며, 앱 기동 시 Flyway가 미적용 파일을 순서대로 실행한다.
+
+### 새 마이그레이션 추가
+
+1. 현재 디렉토리에서 가장 큰 `V` 번호 + 1 확인
+2. `V{번호}__{스네이크_케이스_설명}.sql` 생성 (예: `V40__add_booth_email.sql`)
+3. SQL 작성 후 앱 기동 → 자동 적용 (`flyway_schema_history` 테이블에서 확인)
+
+> 엔티티에는 `BaseEntity`의 `created_at` / `updated_at DATETIME(6) NOT NULL` 컬럼을 마이그레이션 SQL에 반드시 함께 정의한다. `ddl-auto=validate`가 컬럼 부재를 즉시 잡아낸다.
 
 ### 절대 하지 말 것
 
-- ❌ **이미 머지된 V 파일을 수정** — 적용된 환경에서 다시 실행되지 않아 환경 간 불일치 발생. 변경이 필요하면 새 V 파일 추가 (예: `V5__alter_booth_add_email.sql`).
-- ❌ **버전 번호 건너뛰기** — Flyway 는 순차 적용. V2 다음에 V4 만들면 환경에 따라 동작 다름.
-- ❌ **로컬에서 테이블 직접 만들기** — 다른 팀원과 스키마 불일치 발생.
-
-### 작성 예시
-
-```sql
--- V2__create_booth_table.sql
-CREATE TABLE booth (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(100) NOT NULL,
-    location    VARCHAR(200),
-    created_at  DATETIME(6) NOT NULL,
-    updated_at  DATETIME(6) NOT NULL,
-    INDEX idx_booth_location (location)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
+- ❌ **이미 머지된 `V` 파일 수정** — 적용된 환경에서 재실행되지 않아 환경 간 불일치 발생. 변경은 새 `V` 파일로.
+- ❌ **버전 번호 건너뛰기** — Flyway는 순차 적용한다.
+- ❌ **로컬에서 테이블 직접 생성** — 팀원과 스키마 불일치 발생.
 
 ---
 
-## 도메인 엔티티 작성 가이드
-
-모든 JPA 엔티티는 `BaseEntity` 를 상속하여 `createdAt` / `updatedAt` 자동 관리를 받는다.
-
-```java
-import com.likelion.yonsei.daedongje.common.entity.BaseEntity;
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "booth")
-public class Booth extends BaseEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, length = 100)
-    private String name;
-
-    @Column(length = 200)
-    private String location;
-
-    // 기본 생성자 (JPA 요구) + 비즈니스 생성자/getter 작성
-}
-```
-
-### BaseEntity 가 자동 관리하는 컬럼
-
-| 필드 | 타입 | 동작 |
-| --- | --- | --- |
-| `createdAt` | `LocalDateTime` | 엔티티 최초 저장 시 자동 채워지고 이후 변경 안 됨 |
-| `updatedAt` | `LocalDateTime` | 매 저장(update) 마다 자동 갱신 |
-
-### Flyway 마이그레이션에서의 대응
-
-엔티티 작성 시 마이그레이션 SQL 에 `created_at`, `updated_at` `DATETIME(6) NOT NULL` 컬럼을 반드시 함께 정의한다 (위 "작성 예시" SQL 참고). JPA `ddl-auto=validate` 가 컬럼 부재를 즉시 잡아내어 앱이 기동되지 않는다.
-
-### 의도적으로 미포함된 항목
-
-- **`createdBy` / `updatedBy` (수정자 추적)** — 인증 도메인 머지 후 별도 PR 로 추가 예정 (SecurityContext 의존)
-- **soft delete (`deletedAt`)** — 모든 엔티티가 필요한 게 아니므로 도메인별로 별도 인터페이스/믹스인으로 추가
-
----
-
-## Spring 프로파일
-
-환경별 설정은 Spring 프로파일로 분리한다.
-
-| 프로파일 | 활성화 방법 | 적용되는 yaml | 용도 |
-| --- | --- | --- | --- |
-| (default) | `./gradlew bootRun` | `application.yaml` 만 | 로컬 개발 — 환경변수 디폴트(docker-compose MySQL) 사용 |
-| `dev` | `./gradlew bootRun --args='--spring.profiles.active=dev'` | + `application-dev.yaml` | 스테이징 (현재 빈 스텁) |
-| `prod` | `SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun` | + `application-prod.yaml` | 프로덕션 — Swagger UI 비활성화 등 |
-
-적용 순서: `application.yaml` (공통) → `application-{프로파일}.yaml` (오버라이드).
-
-DB 연결 같은 환경 의존 값은 yaml 에 직접 박지 않고 `${DB_URL}` 같은 환경변수 참조로 작성하므로, 보통 프로파일별 yaml 은 비어있거나 매우 가볍다. 환경변수만 잘 설정하면 한 jar 가 모든 환경에서 동작한다.
-
----
-
-## 테스트 실행
+## 테스트
 
 ```bash
 ./gradlew test
 ```
 
-- 테스트는 H2 인메모리 DB (`MODE=MySQL`)를 사용 — Docker MySQL 안 띄워도 즉시 실행 가능
-- JPA `ddl-auto=create-drop` 으로 엔티티 정의에서 스키마 자동 생성
-- Flyway 는 테스트에서 비활성화 (운영 마이그레이션 흐름 검증은 추후 Testcontainers 통합 테스트로)
+- **H2 인메모리 DB**(`MODE=MySQL`)를 사용 — Docker MySQL 없이 즉시 실행 가능
+- 테스트에서는 Flyway 비활성, JPA `ddl-auto=create-drop`으로 엔티티 정의에서 스키마 자동 생성
+- (운영 마이그레이션 흐름 검증은 추후 Testcontainers 통합 테스트로 보강 예정)
 
+---
+
+## 배포 & 운영
+
+### 브랜치 전략
+
+| 브랜치 | 용도 |
+| --- | --- |
+| `main` | 프로덕션 (리드 승인 후 머지) |
+| `dev` | 통합 브랜치 (주간 스테이징 배포) |
+| `feature/*` | 기능 개발 (Linear 이슈 기반 자동 생성) |
+| `hotfix/*` | 프로덕션 긴급 수정 |
+
+### CI / CD (GitHub Actions)
+
+- **CI** (`.github/workflows/ci.yml`) — `dev`·`main` 대상 PR/Push에서 Flyway 버전 중복 검사 → Gradle wrapper 검증 → 컴파일 → 단위 테스트(`./gradlew test`). 실패 시 테스트 리포트 업로드.
+- **배포** (`.github/workflows/deploy.yml`) — `main` Push(또는 수동 dispatch) 시 Docker 이미지 빌드·푸시 → EC2 SSH 배포(`docker-compose.prod.yml`) → `/actuator/health` 폴링으로 검증, 실패 시 직전 이미지로 자동 롤백.
+
+### 운영 엔드포인트 (Actuator)
+
+| 엔드포인트 | 용도 |
+| --- | --- |
+| `/actuator/health` | 헬스 체크 (배포 검증·로드밸런서) |
+| `/actuator/prometheus` | Prometheus 메트릭 (Grafana Alloy가 수집) |
+
+프로덕션에서는 콘솔 로그를 ECS JSON으로 구조화해 Alloy가 Loki로 수집하고, HTTP latency 히스토그램으로 Grafana 대시보드의 p95/p99 패널을 그린다. Grafana 알림은 `/api/monitoring/webhooks/alerts`로 수신한다.
+
+---
+
+## 기여
+
+브랜치·이슈·PR·커밋 규칙은 [`CONTRIBUTING.md`](CONTRIBUTING.md)를 따른다. 핵심만 요약하면:
+
+- 브랜치는 **Linear 이슈에서 자동 생성된 이름**(`feature/BACK-xx-...`, 영어)을 그대로 사용하고 **`dev`에서 분기**한다.
+- 커밋 메시지는 컨벤션 접두사(`feat:` `fix:` `docs:` `chore:` `refactor:` `test:`)를 사용한다.
+- PR은 `.github/PULL_REQUEST_TEMPLATE.md`를 따르고, 각 팀 팀장 리뷰를 받는다.
